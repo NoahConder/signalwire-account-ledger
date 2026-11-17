@@ -1,0 +1,46 @@
+{# Small pieces shared by the pages. #}
+
+{% macro notice(message, tone="error") -%}
+<p class="notice notice-{{ tone }}" role="{{ 'alert' if tone == 'error' else 'note' }}">{{ message }}</p>
+{%- endmacro %}
+
+{% macro badge(status, tone="neutral") -%}
+{% if status %}<span class="badge badge-{{ tone }}"><span class="dot" aria-hidden="true"></span>{{ status }}</span>{% else %}<span class="muted">—</span>{% endif %}
+{%- endmacro %}
+
+{% macro scope(text) -%}
+<span class="scope">{{ text }}</span>
+{%- endmacro %}
+
+{# A ranked list of amounts: label, bar, value. One hue, largest first. #}
+{% macro bars(rows, empty="Nothing recorded for this month.", limit=0) -%}
+{% if rows and limit and rows|length > limit %}
+{{ bars(rows[:limit]) }}
+<details class="more-bars">
+  <summary>Show {{ rows|length - limit }} more</summary>
+  {{ bars(rows[limit:]) }}
+</details>
+{% elif rows %}
+<ol class="bars">
+  {% for row in rows %}
+  <li>
+    <span class="bars-label" title="{{ row.label }}{% if row.kind or row.id %} ({{ row.kind or row.id }}){% endif %}">{{ row.label }}</span>
+    <svg class="bar" role="img" aria-label="{{ row.label }}: {{ row.amount }}">
+      <title>{{ row.label }}: {{ row.amount }}</title>
+      <rect class="bar-track" width="100%" height="8" rx="4"></rect>
+      {% if row.pct > 0 %}<rect class="bar-fill" width="{{ row.pct }}%" height="8" rx="4"></rect>{% endif %}
+    </svg>
+    <span class="bars-value num" title="{{ row.exact }}">{{ row.amount }}</span>
+  </li>
+  {% endfor %}
+</ol>
+{% else %}
+<p class="empty">{{ empty }}</p>
+{% endif %}
+{%- endmacro %}
+
+{% macro party_text(row) -%}{% if row.to %}{{ row.from or "—" }} → {{ row.to }}{% else %}{{ row.from or "—" }}{% endif %}{%- endmacro %}
+
+{% macro party(row) -%}
+{% if row.to %}{{ row.from or "—" }} <span class="arrow" aria-hidden="true">→</span> {{ row.to }}{% else %}{{ row.from or "—" }}{% endif %}
+{%- endmacro %}

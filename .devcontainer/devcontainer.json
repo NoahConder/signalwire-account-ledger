@@ -1,0 +1,34 @@
+{
+  "name": "signalwire-account-ledger",
+  "build": { "dockerfile": "Dockerfile" },
+
+  // Create .env from the template on the host if it doesn't exist yet, so --env-file never fails.
+  "initializeCommand": "test -f .env || cp .env.example .env",
+  "runArgs": ["--env-file", ".env"],
+
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+
+  // The ledger listens on this port inside the container (python -m ledger).
+  "forwardPorts": [8000],
+
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "charliermarsh.ruff",
+        "humao.rest-client",
+        "mikestead.dotenv"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff",
+          "editor.formatOnSave": true
+        }
+      }
+    }
+  },
+
+  "remoteUser": "vscode"
+}

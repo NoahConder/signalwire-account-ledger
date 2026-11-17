@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Statements{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Statements</h1>
+  <p class="lede">One statement per calendar month, for the whole space.</p>
+</div>
+
+<div class="split">
+  <nav class="card period-nav" aria-label="Statement months">
+    {% if periods %}
+    <ul>
+      {% for p in periods %}
+      <li><a href="/statements?month={{ p.month }}" {% if p.month == month %}aria-current="true"{% endif %}>
+        <span>{{ p.month|month_label }}</span>
+        {% if "pdf" not in p.formats %}<span class="scope">Current</span>{% endif %}
+      </a></li>
+      {% endfor %}
+    </ul>
+    {% elif periods_error %}
+    {{ ui.notice(periods_error) }}
+    {% else %}
+    <p class="empty">No statements yet.</p>
+    {% endif %}
+  </nav>
+
+  <div class="stack">
+    <section class="card">
+      <header class="card-head">
+        <h2>{{ month|month_label }}</h2>
+        {{ ui.scope("Whole space") }}
+        <span class="actions">
+          {% for fmt in formats %}
+          <a class="button" href="/statements/{{ month }}/statement.{{ fmt }}" download>Download {{ fmt|upper }}</a>
+          {% endfor %}
+        </span>
+      </header>
+      {% if statement %}
+      <dl class="summary">
+        <div><dt>Usage</dt><dd class="num" title="{{ statement.exact.usage }}">{{ statement.usage }}</dd></div>
+        <div><dt>Carrier fees</dt><dd class="num" title="{{ statement.exact.carrier_fees }}">{{ statement.carrier_fees }}</dd></div>
+        <div><dt>Taxes</dt><dd class="num" title="{{ statement.exact.taxes }}">{{ statement.taxes }}</dd></div>
+        <div class="summary-total"><dt>Usage, fees and taxes</dt><dd class="num" title="{{ statement.exact.total }}">{{ statement.total }}</dd></div>
+      </dl>
+      <p class="hint">Amounts are rounded to the cent for display. Hover a figure for its exact value.</p>
+      {% if "pdf" not in formats %}
+      <p class="hint">This month has not closed, so its figures can still change and there is no PDF yet.</p>
+      {% endif %}
+      {% else %}
+      {{ ui.notice(statement_error or "This statement could not be read.") }}
+      {% endif %}
+    </section>
+
+    {% if statement %}
+    <section class="card">
+      <header class="card-head"><h2>Balance adjustments</h2></header>
+      {% if statement.adjustments %}
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Kind</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            {% for a in statement.adjustments %}
+            <tr><td>{{ a.label }} <span class="muted mono">{{ a.kind }}</span></td><td class="num">{{ a.micro|money }}</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <p class="empty">No top-ups, credits or debits were recorded this month.</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <header class="card-head"><h2>Usage by kind</h2></header>
+      {{ ui.bars(statement.by_kind) }}
+    </section>
+
+    <section class="card">
+      <header class="card-head"><h2>Usage by project</h2></header>
+      {% if statement.by_project %}
+      <ul class="projects">
+        {% for project in statement.by_project %}
+        <li>
+          <details>
+            <summary>
+              <span class="project-name">{{ project.label }}</span>
+              <span class="muted mono project-id">{{ project.id }}</span>
+              <span class="num">{{ project.amount }}</span>
+            </summary>
+            {{ ui.bars(project.usage_by_kind, "No usage for this project.") }}
+          </details>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">No project recorded usage this month.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.pytest_cache/
+
+# Local working files. Never committed.
+.claude/
+drafts/
+logs/
+*-claude-*.zip

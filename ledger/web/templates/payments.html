@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Payments{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Payments</h1>
+  <p class="lede">Top-ups, auto top-ups, and credits or debits applied to the space balance.</p>
+</div>
+
+<section class="card">
+  <header class="card-head">
+    <h2>{{ "All time" if all_time else month|month_label }}</h2>
+    {{ ui.scope("Whole space") }}
+    <span class="actions">
+      <span class="segmented" role="group" aria-label="Range">
+        <a href="/payments?month={{ month }}" {% if not all_time %}aria-current="true"{% endif %}>{{ month|month_label }}</a>
+        <a href="/payments?month={{ month }}&amp;range=all" {% if all_time %}aria-current="true"{% endif %}>All time</a>
+      </span>
+      {% if rows %}<button class="button" type="button" data-export-table="payments" data-filename="payment-history.csv">Export CSV</button>{% endif %}
+    </span>
+  </header>
+
+  {% if payments_error %}
+  {{ ui.notice(payments_error) }}
+  {% elif rows %}
+  <div class="table-wrap">
+    <table id="payments">
+      <thead><tr><th>Time (UTC)</th><th>Kind</th><th>Card</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        {% for row in rows %}
+        <tr>
+          <td class="mono nowrap">{{ row.created_at|time }}</td>
+          <td>{{ row.label }}</td>
+          <td class="mono">{% if row.last4 %}ending {{ row.last4 }}{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="num {{ 'negative' if row.micro < 0 }}">{{ row.amount }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="3">Total on this page</td><td class="num">{{ page_total }}</td></tr></tfoot>
+    </table>
+  </div>
+  <div class="pager">
+    {% if not is_first_page %}<a class="button" href="/payments?month={{ month }}{{ '&amp;range=all'|safe if all_time }}">First page</a>{% endif %}
+    {% if next_cursor %}<a class="button" href="/payments?month={{ month }}{{ '&amp;range=all'|safe if all_time }}&amp;cursor={{ next_cursor|urlencode }}">Next page</a>{% endif %}
+  </div>
+  {% else %}
+  <p class="empty">{{ "No balance adjustments have been recorded." if all_time else "No balance adjustments were recorded in this month." }}</p>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Activity{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Activity</h1>
+  <p class="lede">Calls, messages, faxes and video sessions logged for {% if project_label %}project {{ project_label }}{% else %}one project{% endif %}. Times are UTC.</p>
+</div>
+
+{% if not has_project %}
+{{ ui.notice("Set SIGNALWIRE_PROJECT_ID and SIGNALWIRE_API_TOKEN to see this project's logs.", "info") }}
+{% endif %}
+
+<section class="card" id="activity"
+         data-product="{{ product }}"
+         data-configured="{{ 'true' if has_project else 'false' }}"
+         data-ledger-products="{{ ledger_products|join(',') }}">
+  <div class="chips" role="group" aria-label="Product">
+    <button type="button" class="chip" data-product="all">All</button>
+    {% for p in products %}
+    <button type="button" class="chip" data-product="{{ p.key }}">{{ p.label }}</button>
+    {% endfor %}
+  </div>
+
+  <form class="filters" id="activity-filters">
+    <label>From <input type="date" name="from" value="{{ date_from }}"></label>
+    <label>To <input type="date" name="to" value="{{ date_to }}"></label>
+    <label>Status <select name="status"><option value="">Any</option></select></label>
+    <label>Direction <select name="direction"><option value="">Any</option></select></label>
+    <label class="grow">Search <input type="search" name="q" placeholder="Number, room or ID"></label>
+    <label class="check"><input type="checkbox" name="include_deleted"> Include deleted</label>
+  </form>
+
+  <div class="table-meta">
+    <p id="activity-summary" class="muted" aria-live="polite">Loading…</p>
+    <span class="actions">
+      <button class="button" type="button" id="export-csv">Export CSV</button>
+      <button class="button" type="button" id="export-json">Export JSON</button>
+    </span>
+  </div>
+
+  <div id="activity-notices"></div>
+
+  <div class="table-wrap">
+    <table id="activity-table">
+      <thead>
+        <tr><th>Time (UTC)</th><th>Product</th><th class="col-type">Type</th><th>Direction</th><th class="party">From and to</th><th>Status</th><th>Size</th><th class="num">Charge</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+  <p class="empty" id="activity-empty" hidden>No activity in this range.</p>
+  <div class="pager"><button class="button" type="button" id="load-more" hidden>Load more</button></div>
+  <p class="hint">Status, direction and search apply to the rows loaded so far. The date range is applied by the API.</p>
+  <p class="hint">The charge total covers the rows loaded here, for one project. For what the whole space was billed, see <a href="/statements?month={{ month }}">Statements</a>.</p>
+</section>
+
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" hidden>
+  <header class="drawer-head">
+    <h2 id="drawer-title">Log</h2>
+    <button class="icon-button" type="button" id="drawer-close" aria-label="Close">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+  <div class="drawer-body" id="drawer-body"></div>
+</aside>
+{% endblock %}

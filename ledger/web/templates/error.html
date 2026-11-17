@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Something went wrong{% endblock %}
+{% block content %}
+<div class="page-head"><h1>That did not work</h1></div>
+<section class="card">
+  {{ ui.notice(message) }}
+  <p><a class="button" href="/statements?month={{ month }}">Back to statements</a></p>
+</section>
+{% endblock %}

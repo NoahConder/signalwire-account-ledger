@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Overview{% endblock %}
+{% block content %}
+<div class="page-head">
+  <h1>Overview</h1>
+  <p class="lede">{{ month|month_label }}{% if is_current_month %}, month to date{% endif %}</p>
+</div>
+
+{% if not has_personal %}
+{{ ui.notice("Set SIGNALWIRE_PAT to see the balance, usage and statements. A project API token is not accepted on the billing endpoints.", "info") }}
+{% else %}
+{% for message in [balance_error, usage_error, periods_error]|select|unique %}
+{{ ui.notice(message) }}
+{% endfor %}
+{% endif %}
+
+<section class="tiles" aria-label="Summary">
+  <div class="tile">
+    <span class="tile-label">Current balance</span>
+    {% if balance %}
+    <span class="tile-value">{{ balance.balance_in_microdollars|money }}</span>
+    <span class="tile-note">Low-balance threshold {{ balance.low_balance_threshold_in_microdollars|money }}</span>
+    {% else %}
+    <span class="tile-value muted">—</span>
+    <span class="tile-note">{{ "Unavailable" if has_personal else "Not configured" }}</span>
+    {% endif %}
+  </div>
+  <div class="tile">
+    <span class="tile-label">Usage, {{ month|month_label }}</span>
+    {% if usage %}
+    <span class="tile-value">{{ usage.total }}</span>
+    <span class="tile-note">{{ "So far this month" if is_current_month else "Whole month" }}, all projects</span>
+    {% else %}
+    <span class="tile-value muted">—</span>
+    <span class="tile-note">{{ "Unavailable" if has_personal else "Not configured" }}</span>
+    {% endif %}
+  </div>
+  <div class="tile">
+    <span class="tile-label">Latest top-up</span>
+    {% if top_up %}
+    <span class="tile-value">{{ top_up.amount }}</span>
+    <span class="tile-note">{{ top_up.created_at|day }}{% if top_up.last4 %}, card ending {{ top_up.last4 }}{% endif %}</span>
+    {% else %}
+    <span class="tile-value muted">—</span>
+    <span class="tile-note">{{ "None in the last 12 months" if balance else ("Unavailable" if has_personal else "Not configured") }}</span>
+    {% endif %}
+  </div>
+  <div class="tile">
+    <span class="tile-label">Auto top-up</span>
+    {% if balance %}
+    <span class="tile-value">{{ "On" if balance.auto_topup_enabled else "Off" }}</span>
+    <span class="tile-note">{% if balance.auto_topup_enabled %}Triggers below {{ balance.low_balance_threshold_in_microdollars|money }}{% else %}The balance is not refilled automatically{% endif %}</span>
+    {% else %}
+    <span class="tile-value muted">—</span>
+    <span class="tile-note">{{ "Unavailable" if has_personal else "Not configured" }}</span>
+    {% endif %}
+  </div>
+</section>
+
+<div class="columns">
+  <section class="card">
+    <header class="card-head"><h2>Usage by kind</h2>{{ ui.scope("Whole space") }}</header>
+    {% if usage %}{{ ui.bars(usage.by_kind, limit=10) }}{% else %}<p class="empty">{{ "Unavailable." if has_personal else "Not configured." }}</p>{% endif %}
+  </section>
+  <section class="card">
+    <header class="card-head"><h2>Usage by project</h2>{{ ui.scope("Whole space") }}</header>
+    {% if usage %}{{ ui.bars(usage.by_project, limit=10) }}{% else %}<p class="empty">{{ "Unavailable." if has_personal else "Not configured." }}</p>{% endif %}
+  </section>
+</div>
+
+<section class="card">
+  <header class="card-head">
+    <h2>Recent activity</h2>
+    {{ ui.scope("Project " ~ project_label if project_label else "One project") }}
+    <a class="card-link" href="/activity?month={{ month }}">All activity</a>
+  </header>
+  {% if not has_project %}
+  {{ ui.notice("Set SIGNALWIRE_PROJECT_ID and SIGNALWIRE_API_TOKEN to see this project's logs.", "info") }}
+  {% endif %}
+  {% for label, message in recent.errors.items() %}
+  {% if has_project %}{{ ui.notice(label ~ ": " ~ message) }}{% endif %}
+  {% endfor %}
+  {% if recent.rows %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Time (UTC)</th><th>Product</th><th class="party">From and to</th><th>Status</th><th>Size</th><th class="num">Charge</th></tr></thead>
+      <tbody>
+        {% for row in recent.rows %}
+        <tr>
+          <td class="mono nowrap">{{ row.created_at|time }}</td>
+          <td><a href="/activity?month={{ month }}&amp;product={{ row.product }}">{{ row.product_label }}</a></td>
+          <td class="mono party" title="{{ ui.party_text(row) }}">{{ ui.party(row) }}</td>
+          <td>{{ ui.badge(row.status, row.tone) }}</td>
+          <td>{{ row.size or "—" }}</td>
+          <td class="num">{{ row.charge or "—" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif has_project and not recent.errors %}
+  <p class="empty">No activity has been logged for this project yet.</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <header class="card-head"><h2>Statements</h2>{{ ui.scope("Whole space") }}</header>
+  {% if periods %}
+  <ul class="period-list">
+    {% for p in periods[:12] %}
+    <li>
+      <a href="/statements?month={{ p.month }}">{{ p.month|month_label }}</a>
+      <span class="muted">{{ p.formats|map("upper")|join(", ") }}</span>
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif periods_error %}
+  <p class="empty">{{ "Unavailable." if has_personal else "Not configured." }}</p>
+  {% else %}
+  <p class="empty">No statements are available yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

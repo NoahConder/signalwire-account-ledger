@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% import "_macros.html" as ui %}
+{% block title %}Account{% endblock %}
+{% macro field(label, value) -%}
+<div><dt>{{ label }}</dt><dd>{% if value is none or value == "" %}<span class="muted">Not set</span>{% else %}{{ value }}{% endif %}</dd></div>
+{%- endmacro %}
+{% macro yes_no(value) -%}{{ "Yes" if value else "No" }}{%- endmacro %}
+{% block content %}
+<div class="page-head">
+  <h1>Account</h1>
+  <p class="lede">Billing details for the space. This view is read-only; change them in your Dashboard.</p>
+</div>
+
+<div class="columns">
+  <section class="card">
+    <header class="card-head"><h2>Billing profile</h2></header>
+    {% if profile %}
+    <dl class="fields">
+      {{ field("Company", profile.company_name) }}
+      {{ field("Contact", profile.contact_name) }}
+      {{ field("Billing email", (profile.contact_email or [])|join(", ")) }}
+      {{ field("Phone", profile.contact_phone) }}
+      {{ field("Address", [profile.address_line1, profile.address_line2, profile.address_city, profile.address_state, profile.address_zip, profile.address_country]|select|join(", ")) }}
+      {{ field("Tax ID", profile.tax_id_number) }}
+      {{ field("Monthly invoices", yes_no(profile.monthly_invoices)) }}
+    </dl>
+    {% else %}
+    {{ ui.notice(profile_error or "The billing profile could not be read.") }}
+    {% endif %}
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <header class="card-head"><h2>Cards on file</h2></header>
+      {% if cards_error %}
+      {{ ui.notice(cards_error) }}
+      {% elif cards %}
+      <ul class="cards">
+        {% for card in cards %}
+        <li>
+          <span class="card-brand">{{ card.brand|capitalize }}</span>
+          <span class="mono">ending {{ card.last4 }}</span>
+          <span class="muted">expires {{ "%02d"|format(card.expires_month) }}/{{ card.expires_year }}</span>
+          {% if card.auto_topup_source %}<span class="scope">Auto top-up</span>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="empty">No card is on file.</p>
+      {% endif %}
+    </section>
+
+    <section class="card">
+      <header class="card-head"><h2>Low-balance alerts</h2></header>
+      {% if low %}
+      <dl class="fields">
+        {{ field("Threshold", low.threshold_in_microdollars|money) }}
+        {{ field("Email alert", yes_no(low.send_email)) }}
+        {{ field("Webhook alert", yes_no(low.send_webhook)) }}
+        {% if low.send_webhook %}{{ field("Webhook", (low.webhook_method or "") ~ " " ~ (low.webhook_url or "")) }}{% endif %}
+        {{ field("Auto top-up", yes_no(low.send_topup)) }}
+        {% if low.send_topup %}{{ field("Top-up amount", low.topup_amount_in_microdollars|money) }}{% endif %}
+      </dl>
+      {% else %}
+      {{ ui.notice(low_error or "The low-balance settings could not be read.") }}
+      {% endif %}
+    </section>
+  </div>
+</div>
+{% endblock %}
